@@ -1,6 +1,6 @@
-# GobiChecker
+# Unified CATs Application
 
-GobiChecker is a program that takes a brief export of Gobi requests and searches Alma for duplicate holdings in the institution zone (IZ).
+The Unified CATs Application is a program that takes a brief export of Gobi requests and searches Alma for duplicate holdings in the institution zone (IZ).
 
 The scripts in this project are the original work of [Jeremy Hobbs](https://github.com/MrJeremyHobbs). More details about the updates to the code found in this repository and statements about coding credit can be found in the acknowledgements section below. 
 
