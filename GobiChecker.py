@@ -34,15 +34,16 @@ def main(*args):
 
     # loop through and parse GOBI file
     gobi_file = open(f_path, 'r', encoding='utf-8')
-    for line in gobi_file.readlines():
-        
-        # skip header
-        if gui.counter == -1:
-            gui.counter += 1
-            continue
+
+    lines = gobi_file.readlines()
+
+    headers = lines[0].strip().split("\t")
+
+
+    for line in lines[1:]:
         
         # initiate Gobi order line object
-        order = gobi.parse_line(line)
+        order = gobi.ParseLine(line, headers)
         
         # check for null lines and skip
         if order.line_is_null == True:
@@ -87,72 +88,30 @@ def main(*args):
         iz_title_recs_found = ""
         if iz_title.numberOfRecords > 0:
             iz_title_recs_found = "X"
+                    
+        # GOBI Purchase Option Lookup
+        order_options_found = ""
+        if order.purchase_option:
+            order_options_found = "X"
         
-        # IZ-KW search
-        iz_kw_recs_found = ""
-        if iz_kw.numberOfRecords > 0:
-            iz_kw_recs_found = "X"
-            
-        # ebook package
-        have_e_holdings = ""
-        if iz_isbn.have_e_holdings == True:
-            combined_e_holdings = iz_isbn.e_holdings
-            for holding in combined_e_holdings:
-                combined_e_holdings = [holding.replace(" ()", "") \
-                  for holding in combined_e_holdings]
-            combined_e_holdings = ", ".join(combined_e_holdings)
-            have_e_holdings = "X"
-        
-        # Intentional Duplicate
-        order_dupe_note_found = ""
-        if order.dupe_is_null == False:
-            order_dupe_note_found = "X"
-
-        #Check for temporary collections
-        temp_collection_found = ""
-        if iz_isbn.numberOfRecords > 0:
-            temp_holdings = sru.check_temp(iz_isbn.records, zone="IZ", inst_code=config.inst_code)
-            if temp_holdings:
-                combined_temp_holdings = temp_holdings
-                for holding in combined_temp_holdings:
-                    combined_temp_holdings = [holding.replace(" ()", "") for holding in combined_temp_holdings]
-                combined_temp_holdings = ", ".join(combined_temp_holdings)
-                temp_collection_found = "X"
-
         # _____________________ GENERATE OUTPUT ______________________________#
         results = ""
         tag = ""
-        
-        if iz_isbn_recs_found == "" and \
-           iz_title_recs_found == "" and \
-           iz_kw_recs_found == "" and \
-           have_e_holdings == "":
-            tag = "ok_to_order"
-            results = "OK to order"
             
         if iz_title_recs_found == "X":
             tag = "duplicate"
-            results = "Duplicate-Title"
+            results = "Matching Title Found"
 
-        if iz_kw_recs_found == "X":
-            tag = "error"
-            results = "Duplicate-KW"
         
         if iz_isbn_recs_found == "X":
             tag = "duplicate"
-            results = "Duplicate-ISBN"
+            results = "Matching ISBN Found"
             
-        if have_e_holdings == "X":
-            tag = "duplicate"
-            results = f"Duplicate-Have Ebook ({combined_e_holdings})"
             
-        if order_dupe_note_found == "X":
-            tag = "intduplicate"
-            results = "OK to order"
+        if order_options_found == "X":
+            tag = "ok_to_order"
+            results = "GOBI CATs Option(s) Available"
 
-        if temp_collection_found == "X":
-            tag = "tempholding"
-            results = f"Temp. ({combined_temp_holdings})"
 
         # insert results into gui
         gui.counter += 1
@@ -160,7 +119,7 @@ def main(*args):
         gui.insert_text(gui.counter, (order.isbn, order.title.title(), order.author.title(), 
                           order.pub_year, order.binding, 
                           iz_isbn_recs_found, iz_title_recs_found, 
-                          iz_kw_recs_found, results), tag)
+                          results), tag)
         gui.progress_bar.step(increment)
         continue
             
@@ -245,7 +204,7 @@ class gui:
         # tree columns
         self.tree['columns'] = ('isbn', 'title', 'author', 'pub_date', 
                                   'binding', 'iz_search_isbn', 
-                                  'iz_search_title', 'iz_search_kw', 'gobipurchase', 'results')
+                                  'iz_search_title', 'gobipurchase', 'results')
                                   
         self.tree.heading('#0', text='#', anchor='w')
         self.tree.heading('isbn', text='ISBN', anchor="w")
@@ -255,7 +214,6 @@ class gui:
         self.tree.heading('binding', text='Binding', anchor="w")
         self.tree.heading('iz_search_isbn', text='IZ-ISBN', anchor="w")
         self.tree.heading('iz_search_title', text='IZ-Title', anchor="w")
-        self.tree.heading('iz_search_kw', text='IZ-KW', anchor="w")
         self.tree.heading('gobipurchase', text="GOBI Purchase Option", anchor="w")
         self.tree.heading('results', text='Results', anchor="w")
         
@@ -267,7 +225,6 @@ class gui:
         self.tree.column("binding", width=50)
         self.tree.column("iz_search_isbn", width=50, anchor="center")
         self.tree.column("iz_search_title", width=45, anchor="center")
-        self.tree.column("iz_search_kw", width=45, anchor="center")
         self.tree.column("gobipurchase", width=403, anchor="center")
         self.tree.column("results", width=403)
         
@@ -280,11 +237,9 @@ class gui:
         self.tree.configure(yscrollcommand=v_scrollbar.set)
        
         # tags
-        self.tree.tag_configure('ok_to_order', background="#fdfcf3")
-        self.tree.tag_configure('intduplicate', background="#fdfcf3")
+        self.tree.tag_configure('ok_to_order', background="#024959", foreground="#FFFFFF")
         self.tree.tag_configure('tempholding', background='#026873', foreground="#FFFFFF")
-        self.tree.tag_configure('duplicate', background='#024959', foreground="#FFFFFF")
-        self.tree.tag_configure('error', background='#8C3B4A', foreground="#FFFFFF")
+        self.tree.tag_configure('duplicate', background='#8C3B4A', foreground="#FFFFFF")
        
         # progressbar
         style.configure("red.Horizontal.TProgressbar", foreground='red', 
@@ -312,27 +267,21 @@ class gui:
     def copy_isbn_keyboard(self, event):
         curItem = self.tree.focus()
         item_dict = self.tree.item(curItem)
-        print(item_dict)
         isbn = item_dict['values'][0]
-        print(isbn)
         root.clipboard_clear()
         root.clipboard_append(isbn)
         
     def copy_isbn_mouse(self):
         curItem = self.tree.focus()
         item_dict = self.tree.item(curItem)
-        print(item_dict)
         isbn = item_dict['values'][0]
-        print(isbn)
         root.clipboard_clear()
         root.clipboard_append(isbn)
         
     def copy_title_mouse(self):
         curItem = self.tree.focus()
         item_dict = self.tree.item(curItem)
-        print(item_dict)
         title = item_dict['values'][1]
-        print(title)
         root.clipboard_clear()
         root.clipboard_append(title)
 

@@ -1,19 +1,19 @@
 import re
 
-class parse_line:
-    def __init__(self, order_line):
-        self.parse_line = parse_line
+class ParseLine:
+    def __init__(self, order_line, headers):
+        self.headers = headers
         
-        #skip null lines
+        # Skip null lines
         if "\t" not in order_line:
             self.line_is_null = True
         else:
             self.line_is_null = False
         
-            # parse
+            # Parse
             fields = order_line.split("\t")
             
-            # title
+            # Title
             self.title  = fields[0]
             self.title_clean = re.sub('[,:;."]', '', self.title)
             self.title_clean = re.sub('[-]', ' ', self.title_clean)
@@ -30,45 +30,61 @@ class parse_line:
             
             self.title_short = self.title_split[0]
             
-            # author
+            # Author
             self.author = fields[6]
             a = self.author.split(", ")
             self.author_lastname = a[0]
             
-            # editor
+            # Editor
             self.editor = fields[7]
-            e = self.editor = self.editor.split(", ")
+            e = self.editor.split(", ")
             
-            # if no author, switch to editor
+            # If no author, switch to editor
             if self.author == "":
-                self.author == e[0]
+                self.author = e[0]
                 self.author_lastname = e[0]
             
-            # kw
+            # Keywords
             self.kw = f"{self.author_lastname} {self.title_parsed}"
             if self.author_lastname == "":
                 self.kw = f"{self.title_parsed}"
             
-            # isbn
+            # ISBN
             self.isbn   = fields[10]
             
-            # publisher
+            # Publisher
             self.pub    = fields[8]
             p = self.pub.split(" ")
             self.pub_short = p[0]
             
-            # pub year
+            # Pub year
             self.pub_year = fields[9]
             
-            # binding
+            # Binding
             self.binding = fields[11]
+            if self.binding.lower() != "ebook":
+                self.line_is_null = True
+                return
 
-            # selector
-            self.selector = fields[167]
-
-            # duplication note
-            self.intdup = fields[170]
+            # Selector
+            self.selector = fields[167]  # This index may need adjustment based on your actual data
+            
+            # Duplication note
+            self.intdup = fields[170]  # This index may need adjustment based on your actual data
             if not self.intdup or len(self.intdup.strip()) == 0:
                 self.dupe_is_null = True
             else:
                 self.dupe_is_null = False
+
+            # Purchase option
+            self.purchase_option = self.get_purchase_option(fields)
+    
+    def get_purchase_option(self, fields):
+        purchase_options = []
+        purchase_types = ["Non-Linear", "Unlimited Access", "Concurrent Access"]
+        for i, header in enumerate(self.headers):
+            if header.endswith('.Purchase_Option'):
+                option = fields[i]
+                if any(purchase_type in option for purchase_type in purchase_types):
+                    purchase_options.append(option)
+        return purchase_options
