@@ -160,7 +160,7 @@ def main(*args):
         gui.insert_text(gui.counter, (order.isbn, order.title.title(), order.author.title(), 
                           order.pub_year, order.binding, 
                           iz_isbn_recs_found, iz_title_recs_found, 
-                          iz_kw_recs_found, order_dupe_note_found, temp_collection_found, results, order.selector), tag)
+                          iz_kw_recs_found, results), tag)
         gui.progress_bar.step(increment)
         continue
             
@@ -245,7 +245,7 @@ class gui:
         # tree columns
         self.tree['columns'] = ('isbn', 'title', 'author', 'pub_date', 
                                   'binding', 'iz_search_isbn', 
-                                  'iz_search_title', 'iz_search_kw', 'intent_dupe', 'temp_collection', 'results', 'selector')
+                                  'iz_search_title', 'iz_search_kw', 'gobipurchase', 'results')
                                   
         self.tree.heading('#0', text='#', anchor='w')
         self.tree.heading('isbn', text='ISBN', anchor="w")
@@ -256,10 +256,8 @@ class gui:
         self.tree.heading('iz_search_isbn', text='IZ-ISBN', anchor="w")
         self.tree.heading('iz_search_title', text='IZ-Title', anchor="w")
         self.tree.heading('iz_search_kw', text='IZ-KW', anchor="w")
-        self.tree.heading('intent_dupe', text='Intent', anchor="w")
-        self.tree.heading('temp_collection', text="Temp.", anchor="w")
+        self.tree.heading('gobipurchase', text="GOBI Purchase Option", anchor="w")
         self.tree.heading('results', text='Results', anchor="w")
-        self.tree.heading('selector', text='Selector', anchor="w")
         
         self.tree.column("#0", width=40)
         self.tree.column("isbn", width=105)
@@ -270,10 +268,8 @@ class gui:
         self.tree.column("iz_search_isbn", width=50, anchor="center")
         self.tree.column("iz_search_title", width=45, anchor="center")
         self.tree.column("iz_search_kw", width=45, anchor="center")
-        self.tree.column("intent_dupe", width=40, anchor="center")
-        self.tree.column("temp_collection", width=40, anchor="center")
+        self.tree.column("gobipurchase", width=403, anchor="center")
         self.tree.column("results", width=403)
-        self.tree.column("selector", width=120)
         
         self.tree.pack(fill="both", expand=False, side="left")
         
