@@ -3,6 +3,8 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
 from tkinter import ttk
+from tkinter import Label, PhotoImage
+from PIL import Image, ImageTk
 import configparser
 import openpyxl
 import os
@@ -99,18 +101,22 @@ def main(*args):
         tag = ""
             
         if iz_title_recs_found == "X":
-            tag = "duplicate"
+            tag = "manual_lookup_title"
             results = "Matching Title Found"
 
         
         if iz_isbn_recs_found == "X":
-            tag = "duplicate"
+            tag = "manual_lookup_isbn"
             results = "Matching ISBN Found"
             
             
         if order_options_found == "X":
             tag = "ok_to_order"
             results = "GOBI CATs Option(s) Available"
+
+        if iz_title_recs_found != "X" and iz_isbn_recs_found != "X" and order_options_found != "X":
+            tag = "no_purchase"
+            results = "No CATs Qualifying Purchase Available"
 
 
         # insert results into gui
@@ -153,7 +159,7 @@ class gui:
     def __init__(self, master):
         self.master = master
         
-        master.title("GobiChecker "+config.version)
+        master.title("CATs Purchase Search "+config.version)
         master.resizable(0, 0)
         master.minsize(width=1370, height=900)
         master.maxsize(width=1370, height=900)
@@ -161,8 +167,12 @@ class gui:
         master.iconbitmap(icon_path)
 
         # Logo image
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo.png")
-        logo = PhotoImage(file=logo_path)
+        logo_width = 1370
+        logo_height = 378
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo.jpg")
+        original_logo = Image.open(logo_path)
+        resized_logo = original_logo.resize((logo_width, logo_height))
+        logo = ImageTk.PhotoImage(resized_logo)
         self.logo = Label(image=logo)
         self.logo.image = logo
         self.logo.pack()
@@ -204,7 +214,7 @@ class gui:
         # tree columns
         self.tree['columns'] = ('isbn', 'title', 'author', 'pub_date', 
                                   'binding', 'iz_search_isbn', 
-                                  'iz_search_title', 'gobipurchase', 'results')
+                                  'iz_search_title', 'gobipurchase', 'permalink')
                                   
         self.tree.heading('#0', text='#', anchor='w')
         self.tree.heading('isbn', text='ISBN', anchor="w")
@@ -214,8 +224,8 @@ class gui:
         self.tree.heading('binding', text='Binding', anchor="w")
         self.tree.heading('iz_search_isbn', text='IZ-ISBN', anchor="w")
         self.tree.heading('iz_search_title', text='IZ-Title', anchor="w")
-        self.tree.heading('gobipurchase', text="GOBI Purchase Option", anchor="w")
-        self.tree.heading('results', text='Results', anchor="w")
+        self.tree.heading('gobipurchase', text="Results", anchor="w")
+        self.tree.heading('permalink', text="Permalink", anchor="w")
         
         self.tree.column("#0", width=40)
         self.tree.column("isbn", width=105)
@@ -225,8 +235,8 @@ class gui:
         self.tree.column("binding", width=50)
         self.tree.column("iz_search_isbn", width=50, anchor="center")
         self.tree.column("iz_search_title", width=45, anchor="center")
-        self.tree.column("gobipurchase", width=403, anchor="center")
-        self.tree.column("results", width=403)
+        self.tree.column("gobipurchase", width=300, anchor="center")
+        self.tree.column("permalink", width=400, anchor="center")
         
         self.tree.pack(fill="both", expand=False, side="left")
         
@@ -237,9 +247,10 @@ class gui:
         self.tree.configure(yscrollcommand=v_scrollbar.set)
        
         # tags
-        self.tree.tag_configure('ok_to_order', background="#024959", foreground="#FFFFFF")
-        self.tree.tag_configure('tempholding', background='#026873', foreground="#FFFFFF")
-        self.tree.tag_configure('duplicate', background='#8C3B4A', foreground="#FFFFFF")
+        self.tree.tag_configure('ok_to_order', background="#ecf0f1")
+        self.tree.tag_configure('manual_lookup_isbn', background='#026873', foreground="#FFFFFF")
+        self.tree.tag_configure('manual_lookup_title', background='#024959', foreground='#FFFFFF')
+        self.tree.tag_configure('no_purchase', background='#8c3b4a', foreground="#FFFFFF")
        
         # progressbar
         style.configure("red.Horizontal.TProgressbar", foreground='red', 
@@ -363,7 +374,7 @@ class gui:
                                                            vertical='center')
 
         # save the file
-        wb.save(f"{config.log_directory}\gobi_checker_log.xlsx")
+        wb.save(f"{config.log_directory}/gobi_checker_log.xlsx")
         self.msgbox("LOG SAVED SUCCESFULLY.")
         
 
