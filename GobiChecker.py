@@ -161,15 +161,15 @@ class gui:
         
         master.title("CATs Purchase Search "+config.version)
         master.resizable(0, 0)
-        master.minsize(width=1370, height=900)
-        master.maxsize(width=1370, height=900)
+        master.minsize(width=1300, height=900)
+        master.maxsize(width=1300, height=900)
         icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo_small.ico")
         master.iconbitmap(icon_path)
 
         # Logo image
-        logo_width = 1370
+        logo_width = 1300
         logo_height = 378
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo.jpg")
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "logo.png")
         original_logo = Image.open(logo_path)
         resized_logo = original_logo.resize((logo_width, logo_height))
         logo = ImageTk.PhotoImage(resized_logo)
