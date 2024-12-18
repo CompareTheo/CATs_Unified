@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from alma.elookup import temporary_collection_list
 import concurrent.futures
 import requests
 import xmltodict
@@ -140,88 +139,48 @@ def get_print_holdings(records):
                 
     return print_holdings, code_c, code_d
     
-def get_e_holdings(records, zone="", inst_code=""):
+def get_e_holdings(records, zone="", inst_code="", match_list=None):
     e_holdings = []
+    cats_ready = False  # Track if there's a match for CATs Ready
+    subfield_0_value = None  # Store the Subfield 0 value if a match is found
 
-    # parse SRU response
+    if not records:
+        return e_holdings, cats_ready, subfield_0_value  # Return defaults if no records
+
+    # Parse SRU response
     for record in records:
         try:
             datafields = record['recordData']['record']['datafield']
-        except Exception as e:
-            #print(e)
+        except Exception:
             datafields = records['recordData']['record']['datafield']
             
         for field in datafields:
+            code_c = ""
             code_e = ""
             code_m = ""
-            code_s = ""
+            code_0 = ""  # Subfield 0 value
         
             # Check for electronic access
             if field['@tag'] == "AVE":
                 for subfield in field['subfield']:
-                    if subfield['@code'] == '8':
-                        code_8 = subfield['#text']
                     if subfield['@code'] == 'c':
                         code_c = subfield['#text']
                     if subfield['@code'] == 'e':
                         code_e = subfield['#text']
                     if subfield['@code'] == 'm':
                         code_m = subfield['#text']
-                    if subfield['@code'] == 's':
-                        code_s = subfield['#text']
-                    if subfield['@code'] == 't':
-                        code_t = subfield['#text']
-            
+                    if subfield['@code'] == '0':
+                        code_0 = subfield['#text']
+
+                # Check if the code_c matches any value in match_list
+                if match_list and code_c in match_list:
+                    cats_ready = True
+                    subfield_0_value = code_0  # Capture the Subfield 0 value
+                
                 # Check for e-holdings in IZ
                 if zone == "IZ" and code_e == "Available":
-                    e_holdings_statement = f"{code_m} ({code_s})"
+                    e_holdings_statement = f"{code_m} ({code_c})"
                     if e_holdings_statement not in e_holdings:
                         e_holdings.append(e_holdings_statement)
                 
-    return e_holdings
-
-def check_temp(records, zone="", inst_code=""):
-    temp_holding = []
-    collection_checker = CollectionCheck(temporary_collection_list)
-
-    # parse SRU response
-    for record in records:
-        try:
-            datafields = record['recordData']['record']['datafield']
-        except Exception as e:
-            datafields = records['recordData']['record']['datafield']
-
-        for field in datafields:
-            code_e = ""
-            code_m = ""
-            code_c = ""
-
-            # Check for electronic access
-            if field['@tag'] == "AVE":
-                for subfield in field['subfield']:
-                    if subfield['@code'] == '8':
-                        code_8 = subfield['#text']
-                    if subfield['@code'] == 'c':
-                        code_c = subfield['#text']
-                    if subfield['@code'] == 'e':
-                        code_e = subfield['#text']
-                    if subfield['@code'] == 'm':
-                        code_m = subfield['#text']
-                    if subfield['@code'] == 's':
-                        code_s = subfield['#text']
-                    if subfield['@code'] == 't':
-                        code_t = subfield['#text']
-
-                # Check for e-holdings in IZ
-                if zone == "IZ" and code_e == "Available" and code_c:
-                    try:
-                        code_c_int = int(code_c)
-                        if collection_checker.check_collection(code_c_int):
-                            temp_holding_statement = f"{code_m}"
-                            if temp_holding_statement not in temp_holding:
-                                temp_holding.append(temp_holding_statement)
-                    except ValueError:
-                        # Handle the case where code_c cannot be converted to an integer
-                        print(f"Invalid code_c: {code_c}")
-
-    return temp_holding
+    return e_holdings, cats_ready, subfield_0_value
