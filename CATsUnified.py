@@ -353,7 +353,7 @@ class gui:
         ws = wb.active
         
         # headers
-        headers = ["ISBN", "Title", "Author", "Publisher", "Date",
+        headers = ["ISBN", "Title", "Author", "Publisher", "Binding",
                      "IZ-ISBN", "IZ-Title", "Cats Ready", "Results", "Permalink"]
         ws.append(headers)
         
